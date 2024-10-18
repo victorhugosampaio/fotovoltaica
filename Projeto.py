@@ -19,6 +19,7 @@ irradiancia_paines_inclinacao = 'Calcular Irradiância para\nPainéis com Inclin
 potencias_tensoes_correntes = 'Calcular Potências, Tensões e Correntes'
 info_painel = "Painel HIKU7 MONO PERC"
 payback = "Calcular Payback"
+otimizacao = "Melhores Valores Para Inclinação e Orientação"
 sair = 'Sair'
 
 
@@ -30,10 +31,11 @@ def main_menu():
         [sg.Push(), sg.Button(potencias_tensoes_correntes, size=(25, 3)), sg.Push()],
         [sg.Push(), sg.Button(info_painel, size=(25, 3)), sg.Push()],
         [sg.Push(), sg.Button(payback, size=(25, 3)), sg.Push()],
+        [sg.Push(), sg.Button(otimizacao, size=(25, 3)), sg.Push()],
         [sg.Push(), sg.Button(sair, size=(25, 2)), sg.Push()]
     ]
 
-    window = sg.Window('Menu Principal', menu_layout, size=(400, 400))
+    window = sg.Window('Menu Principal', menu_layout, size=(400, 500))
 
     while True:
         event, values = window.read()
@@ -50,6 +52,8 @@ def main_menu():
             show_panel(window)
         elif event == payback:
             payback_menu(window)
+        elif event == otimizacao:
+            show_optimization(window)
 
     window.close()
 
@@ -384,6 +388,25 @@ def payback_menu(parent_window):
                 window['-RESULTADOS-'].update('Por favor, insira valores numéricos válidos.')
 
     window.close()
+
+def show_optimization(parent_window):
+    layout = [
+        [sg.Column([[sg.Image(filename='figura_angulos_ideais.png')]]),
+         sg.Column([[sg.Text('Melhor inclinação: 18 graus')],
+                    [sg.Text('Melhor orientação: -12 graus (em relação ao norte)')],
+                    [sg.Text('Irradiância total máxima: 285687.82 W/m² ao\nlongo do dia')]])],
+        [sg.Button('Voltar')]
+    ]
+    
+    info_window = sg.Window("Otimização", layout, modal=True)
+
+
+    while True:
+        event, values = info_window.read()
+        if event == sg.WINDOW_CLOSED or event == 'Voltar':
+            info_window.close()
+            parent_window.un_hide()
+            break
 
 
 main_menu()
