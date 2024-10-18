@@ -339,7 +339,7 @@ def payback_menu(parent_window):
         [sg.Text('Eficiência do Sistema (%):'), sg.InputText('80', key='-EFICIENCIA-')],
         [sg.Text('Tarifa de Energia Elétrica (R$/kWh):'), sg.InputText('0.70', key='-TARIFA-')],
         [sg.Text('Consumo Mensal Médio (kWh):'), sg.InputText('500', key='-CONSUMO-')],
-        [sg.Button('Calcular'), sg.Button('Sair')],
+        [sg.Button('Calcular'), sg.Button('Voltar')],
         [sg.Text('Resultados:', font=('Helvetica', 14))],
         [sg.Text('', key='-RESULTADOS-', size=(40, 10))]
     ]
@@ -348,7 +348,9 @@ def payback_menu(parent_window):
 
     while True:
         event, values = window.read()
-        if event == sg.WINDOW_CLOSED or event == 'Sair':
+        if event == sg.WINDOW_CLOSED or event == 'Voltar':
+            window.close()
+            parent_window.un_hide()  # Retorna ao menu principal
             break
 
         if event == 'Calcular':
