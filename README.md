@@ -1,6 +1,6 @@
 ## Requirements:
 ```
-pip install pandas numpy matplotlib pysimplegui scipy pandas
+pip install pandas numpy matplotlib pysimplegui scipy
 
 ```
 
