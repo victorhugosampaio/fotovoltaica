@@ -12,10 +12,11 @@ df['Temp_Cel'] = df['Temp_Cel'].str.replace(',', '.').astype(float)
 
 
 # Função para desenhar o gráfico no canvas
-def draw_figure(canvas, figure):
+def draw_figure(canvas, figure, remove_last_graphics=True):
     # Remove o gráfico anterior se existir
-    for widget in canvas.winfo_children():
-        widget.destroy()
+    if remove_last_graphics:
+        for widget in canvas.winfo_children():
+            widget.destroy()
 
     figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
     figure_canvas_agg.draw()
@@ -99,7 +100,7 @@ def calculate_solar_parameters(data_hora, irradiancia_global, beta, gamma_p, lat
     return hora_solar, theta_i, G_inc
 
 
-def calcular_resultados(canvas, Pmed, Amp, ang):
+def calcular_resultados(canvas, Pmed, Amp, ang, remove_last_graphics=True):
     # Definindo variáveis
     f = 60
     w = 2 * np.pi * f
@@ -193,7 +194,7 @@ def calcular_resultados(canvas, Pmed, Amp, ang):
     ax4.legend()
 
     plt.tight_layout()
-    draw_figure(canvas, fig)  # Desenha a figura no Canvas
+    draw_figure(canvas, fig, remove_last_graphics)  # Desenha a figura no Canvas
     plt.close(fig)
 
     return (pt_max, pt_media, pt_min, np.mean(pr), Vfv, pfv,

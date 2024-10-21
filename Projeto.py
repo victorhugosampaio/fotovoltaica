@@ -21,6 +21,7 @@ info_painel = "Painel HIKU7 MONO PERC"
 payback = "Calcular Payback"
 otimizacao = "Melhores Valores Para Inclinação e Orientação"
 sair = 'Sair'
+integracao = 'Integração Painel Controle'
 
 
 def main_menu():
@@ -32,10 +33,11 @@ def main_menu():
         [sg.Push(), sg.Button(info_painel, size=(25, 3)), sg.Push()],
         [sg.Push(), sg.Button(payback, size=(25, 3)), sg.Push()],
         [sg.Push(), sg.Button(otimizacao, size=(25, 3)), sg.Push()],
-        [sg.Push(), sg.Button(sair, size=(25, 2)), sg.Push()]
+        [sg.Push(), sg.Button(integracao, size=(25, 2)), sg.Push()],
+        [sg.Push(), sg.Button(sair, size=(25, 2)), sg.Push()],
     ]
 
-    window = sg.Window('Menu Principal', menu_layout, size=(400, 500))
+    window = sg.Window('Menu Principal', menu_layout, size=(400, 600))
 
     while True:
         event, values = window.read()
@@ -54,6 +56,8 @@ def main_menu():
             payback_menu(window)
         elif event == otimizacao:
             show_optimization(window)
+        elif event == integracao:
+            integrate(window)
 
     window.close()
 
@@ -389,6 +393,7 @@ def payback_menu(parent_window):
 
     window.close()
 
+
 def show_optimization(parent_window):
     layout = [
         [sg.Column([[sg.Image(filename='figura_angulos_ideais.png')]]),
@@ -397,9 +402,8 @@ def show_optimization(parent_window):
                     [sg.Text('Irradiância total máxima: 285687.82 W/m² ao\nlongo do dia')]])],
         [sg.Button('Voltar')]
     ]
-    
-    info_window = sg.Window("Otimização", layout, modal=True)
 
+    info_window = sg.Window("Otimização", layout, modal=True)
 
     while True:
         event, values = info_window.read()
@@ -407,6 +411,104 @@ def show_optimization(parent_window):
             info_window.close()
             parent_window.un_hide()
             break
+
+
+def integrate(parent_window):
+    layout = [
+        [sg.Text("HORA(HH:MM): "), sg.InputText('12:00', key='hora_input', size=(25, 1), justification='center')],
+
+        [sg.Text('Inclinação do painel (0° a 89°):', justification='center'),
+         sg.InputText('30', key='beta', size=(5, 1), justification='center'),
+         sg.Text('Angulação do painel (0° a 89°):', justification='center'),
+         sg.InputText('17', key='gamma_p', size=(5, 1), justification='center')],
+        [sg.Text('Latitude:', justification='center'),
+         sg.InputText('0', key='latitude', size=(5, 1), justification='center'),
+         sg.Text('Longitude:', justification='center'),
+         sg.InputText('-46.6', key='longitude', size=(5, 1), justification='center'),
+         sg.Text('Meridiano Central:', justification='center'),
+         sg.InputText('-45', key='meridiano', size=(5, 1), justification='center')],
+        [sg.Text('Fase entre Tensão e Corrente (Graus°):'),
+         sg.InputText(default_text='180', key='Ang', size=(5, 1), justification='center', enable_events=True)],
+        [sg.Text('Amplitude (Vp):'),
+         sg.InputText(default_text='220', key='Amp', size=(5, 1), justification='center', enable_events=True)],
+
+        [sg.Button('Plotar'), sg.Button('Voltar')],
+        [sg.Canvas(key='-CANVAS-CUSTOM-', size=(1000, 1000)), sg.Text('', key='-RESULTADOS-', font=('Helvetica', 12))],
+    ]
+
+    window = sg.Window('Integração', layout, element_justification='c', finalize=True)
+    window.Maximize()
+
+    def are_valid_inputs(values):
+        try:
+            float(values['Ang'])
+            float(values['Amp'])
+            return True
+        except ValueError:
+            return False
+
+    while True:
+        event, values = window.read()
+        if event == sg.WINDOW_CLOSED:
+            break
+        elif event == 'Voltar':
+            window.close()
+            parent_window.un_hide()  # Retorna ao menu principal
+            break
+        elif event == "Plotar":
+            data = '1/11/19'
+            hora = values["hora_input"]
+
+            beta = float(values['beta'])
+            gamma_p = float(values['gamma_p'])
+            lat = float(values['latitude'])
+            long_local = float(values['longitude'])
+            long_meridiano = float(values['meridiano'])
+
+            canvas_widget = window['-CANVAS-CUSTOM-'].TKCanvas
+
+            temperatura_cel, actual_irradiance, angulos_irradiancia, potencia_desejada, potencia_gerada_modulo, quantidade_paineis, short_circuit_current, open_circuit_voltage, temperature_current_coefficient, series_resistance, shunt_resistance, diode_quality_factor, number_of_series_connected_cells = HIKU7(
+                canvas_widget, data, hora, beta, gamma_p, lat, long_local, long_meridiano)
+
+            if are_valid_inputs(values):
+                Pmed = potencia_gerada_modulo
+                Ang = float(values['Ang'])
+                Amp = float(values['Amp'])
+
+                # Chama a função para calcular resultados
+                pt_max, pt_media, pt_min, media_pr, Vfv, pfv, amplitude_tensao, amplitude_corrente, pfv_max, pfv_min, pfv_media, amplitude_tensao_fotovoltaico, amplitude_corrente_fotovoltaico = calcular_resultados(
+                    canvas_widget, Pmed, Amp, Ang, False)
+
+                # Atualiza o texto dos resultados
+                resultados_texto = (
+                    f"Informações sobre o painel:\n"
+                    f"Hora da Medição: {hora}\n"
+                    f"Temperatura (°C): {temperatura_cel:.2f}\n"
+                    f"Irradiância Atual (W/m²): {actual_irradiance:.2f}\n"
+                    f"Ângulo de Incidência (°): {angulos_irradiancia['Ângulo de Incidência']:.2f}\n"
+                    f"Irradiância Incidente (W/m²): {angulos_irradiancia['Irradiância Incidente']:.2f}\n"
+                    f"Potência Gerada pelo Módulo (W): {potencia_gerada_modulo:.2f}\n"
+                    f"Quantidade de Painéis: {quantidade_paineis:.2f}\n\n"
+
+                    "Informações sobre o controle:\n"
+                    f"Potência total máxima Rede: {pt_max:.2f}\n"
+                    f"Potência total mínima Rede: {pt_min:.2f}\n"
+                    f"Média da potência total Rede: {pt_media:.2f}\n"
+                    f"Média da potência reativa Rede: {media_pr:.2f}\n"
+                    f"Amplitude máxima da tensão Rede: {amplitude_tensao:.2f}\n"
+                    f"Amplitude máxima da corrente Rede: {amplitude_corrente:.2f}\n"
+                    f"Potência fotovoltaica máxima: {pfv_max:.2f}\n"
+                    f"Potência fotovoltaica mínima: {pfv_min:.2f}\n"
+                    f"Média da potência fotovoltaica: {pfv_media:.2f}\n"
+                    f"Amplitude máxima da tensão fotovoltaica: {amplitude_tensao_fotovoltaico:.2f}\n"
+                    f"Amplitude máxima da corrente fotovoltaica: {amplitude_corrente_fotovoltaico:.2f}\n"
+                )
+                window['-RESULTADOS-'].update(resultados_texto)
+            else:
+                window['-RESULTADOS-'].update("Por favor, preencha todos os campos com valores numéricos válidos!")
+    window.close()
+
+    # -----------------------------------------------
 
 
 main_menu()
